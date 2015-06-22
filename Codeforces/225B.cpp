@@ -1,28 +1,47 @@
 #include <iostream>
+#include <vector>
+#include <stack>
 
 using namespace std;
 
-int kBonacci(int k, int n)
-{
-	int res = 0;
-	if (k == n) res = 1;
-	else
-		if (k < n)
-		for (int i = 1; i <= k; i++)
-		{
-			res += kBonacci(k, n - i);
+int main(){
+
+	int s, k;
+	cin>>s>>k;
+	int f[1000000];
+	f[0] = 1;
+	f[1] = 1;	
+	int n;
+
+	for(n = 2; n < k && f[n-1] < s; n++)
+		f[n] = 2*f[n-1];
+
+	n--;
+	stack<int> res;
+	while (f[n] < s){
+		n++;
+		f[n] = 2*f[n-1] - (n-k-1 < 0 ? 0 :f[n-k-1]);
+		//cout<<"f("<<n<<") = "<<f[n]<<endl;
+	}
+
+
+		while (s){
+			if (f[n] <= s){
+				s -= f[n];
+				res.push(f[n]);
+			}
+			n--;
 		}
-	cout<<"kbonacci("<<k<<", "<<n<<") = "<<res<<endl;
-	return res;
-}
+		res.push(0);
+		cout<<res.size()<<endl;
+		cout<<res.top();
+		res.pop();
+		while (!res.empty()){
+			cout<<" "<<res.top();
+			res.pop();
+		}
+		cout<<endl;
 
-int main()
-{
-	int n, k;
-
-	cin>>k>>n;
-
-	cout<<kBonacci(k, n)<<endl;
-
+	
 	return 0;
 }
