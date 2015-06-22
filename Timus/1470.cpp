@@ -10,18 +10,18 @@ long long t[MAX][MAX][MAX];
 
 long long add(long long v, long long x, long long y, long long z){
 	//cout<<"adding: "<<v<<endl;
-	for(long long i = x; i < MAX; i |= i+1)
-		for(long long j = y; j < MAX; j |= j+1)
-			for(long long k = z; k < MAX; k |= k+1){
+	for(long long i = x; i < MAX; i += (i & -i))
+		for(long long j = y; j < MAX; j += (j & -j))
+			for(long long k = z; k < MAX; k += (k & -k)){
 				t[i][j][k] += v;
 			}
 }
 
 long long get(long long x, long long y, long long z){
 	long long res = 0;
-	for(long long i = x; i >= 0; i = (i & (i+1)) - 1)
-		for(long long j = y; j >= 0; j = (j & (j+1)) - 1)
-			for(long long k = z; k >= 0; k = (k & (k+1)) - 1)
+	for(long long i = x; i > 0; i -= (i & -i))
+		for(long long j = y; j > 0; j -= (j & -j))
+			for(long long k = z; k > 0; k -= (k & -k))
 				res += t[i][j][k];
 	//cout<<"res> "<<res<<endl;
 	return res;
