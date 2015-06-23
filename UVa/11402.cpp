@@ -1,232 +1,174 @@
 #include <iostream>
 #include <cstring>
-#include <cstdio>
+#include <stack>
+#include <queue>
+#include <vector>
 
 using namespace std;
 
-string pirates;
-
-
-struct Nodo
+struct Node
 {
-	int low, high;
-	Nodo* izq;
-	Nodo* der;
-	int buc;
-	int bar;
-	int op;
+	int buccaneer;
+	int size;
+	queue<char>ops;
+	Node(){
+		buccaneer = 0;
+		size = 0;
+	}
 
-	Nodo (){};
-	Nodo (int min, int max)
-	{
-		op = 0;
-		low = min;
-		high = max;
+	void join(Node a, Node b){
+		buccaneer = a.buccaneer + b.buccaneer;
+		size = a.size + b.size;
+	}
 
-		if (low == high)
-		{
-			buc = pirates[low] == '1';
-			bar = pirates[low] == '0';
+	void accum(char op){
+		ops.push(op);
+	}
+
+	void accum(queue<char> op){
+		while(!op.empty()){
+			ops.push(op.front());
+			op.pop();
+		}
+	}
+	void apply(){
+		char op;
+		while(!ops.empty()){
+			op = ops.front();
+			ops.pop();
+
+			if (op == 'F')
+				buccaneer = size;
+			if (op == 'E')
+				buccaneer = 0;
+			if (op == 'I')
+				buccaneer = size - buccaneer;
+		}
+	}
+};
+
+vector<Node> tree;
+string a;
+
+void init(int begin, int end, int i){
+	
+	if (begin == end){
+		tree[i].buccaneer = a[begin] == '1';
+		tree[i].size = 1;
+		tree[i].ops = queue<char>();
+	} else {
+		int mid = (begin + end) / 2;
+		int left = 2*i + 1;
+		int right = 2*i + 2;
+
+		init(begin, mid, left);
+		init(mid+1, end, right);
+
+		tree[i].join(tree[left], tree[right]);
+	}
+}
+
+void propagate(int begin, int end, int i){
+	//not a leaf
+	if (begin < end){
+		tree[i*2+1].accum(tree[i].ops);
+		tree[i*2+2].accum(tree[i].ops);
+	}
+	tree[i].apply();
+}
+
+Node get(int begin, int end, int l, int r, int i){
+	Node res;
+	
+	propagate(begin, end, i);
+
+	if (l == begin && end == r){
+		res = tree[i];
+	} else {
+		int mid = (begin + end) / 2;
+		int left = 2*i + 1;
+		int right = 2*i + 2;
+
+		if (r <= mid){
+			res = get(begin, mid, l, r, left);
 		}
 		else
-		{
-			int mid = (low + high) / 2;
-
-			izq = new Nodo(low, mid);
-			der = new Nodo(mid + 1, high);
-
-			buc = izq -> buc + der -> buc;
-			bar = izq -> bar + der -> bar;
+		if (l > mid){
+			res = get(mid+1, end, l, r, right);
+		} else {
+			res = Node();
+			res.join(get(begin, mid, l, mid, left), get(mid+1, end, mid+1, r, right));
 		}
 	}
 
-	void apply(int opID)
-	{
-		switch (opID)
-		{
-			case 1: {
-				op = 1;
-			} break;
-			case 2: {
-				op = 2;
-			}
-			case 3: {
-				if (op == 3)
-					op = 0;
-				else
-					op = op == 0 ? 3 : (op == 1 ? 2 : 1);
-			}
-		}
-	}
+	return res;
+}
 
-	void applyOp (int opID, int min, int max)
-	{
-		if (low == min && high == max){
-			apply(opID);
-			op = 0;	
-		} 
-		else
-		{
-			int mid = (low + high) / 2;
-			if (max <= mid) {
+void update(int begin, int end, int l, int r, int i, char op){
+	propagate(begin, end, i);
+	//cout<<"u "<<begin<<" "<<end<<" "<<i<<endl; 
+	if (l == begin && end == r){
+		tree[i].accum(op);
+		propagate(begin, end, i);
+	} else {
+		int mid = (begin + end) / 2;
+		int left = 2*i + 1;
+		int right = 2*i + 2;
 
-				der -> applyOp(op, min, max);
-				izq -> applyOp(opID, min, max);
-
-				op = 0;
-			}
-			else
-				if (mid < min){
-
-					izq -> apply(op);
-					der -> applyOp(opID, min, max);
-					op = 0;	
-				} 
-			else
-			{
-				izq -> applyOp(opID, min, mid);
-				der -> applyOp(opID, mid + 1, max);
-				op = 0;
-			}
-		}
-	}
-
-	void makeOp(int min, int max)
-	{
-		if (low == high)
-		{
-			if (op == 3)
-				swap(buc, bar);
-			if (op == 1)
-				buc = 1, bar = 0;
-			if (op == 2)
-				bar = 1, buc = 0;
-
-		}
-		else
-		{
-			int mid = (min + max) / 2;
-
-			izq -> applyOp(op, min, mid);
-			der -> applyOp(op, mid + 1, max);
-
-			buc = izq -> buc + der -> buc;
-			bar = izq -> bar + der -> bar;
-		}		
-	}
-
-	int consultar (int min, int max)
-	{
-		int res = 0;
-
-		cout<<min<<" <consultando arbol> "<<max<<endl;
-		cout<<low<<" <consultando arbol this> "<<high<<endl;
-
-		if (low == min && high == max)
-		{	
-	//		cout<<"finished"<<endl;
-			if (op != 0)
-			{
-				makeOp(min, max);
-				op = 0;
-			}
-			res = buc;
-		} 
-		else
-		{
-			int mid = (low + high) / 2;
-			int left, rigth;
-
-			cout<<"mid: "<<mid<<endl;
-			if (max <= mid) {
-				cout<<"izq"<<endl;
-				der -> applyOp(op, min, mid);
-				res = izq -> consultar(min, mid);
-			}
-			else
-				if (mid < min) {
-					cout<<"der"<<endl;
-					izq -> applyOp(op, mid + 1, max);
-					res = der -> consultar(mid + 1, max);
-				}
-			else {
-				cout<<"both"<<endl;
-				der -> applyOp(op, min, mid);
-				izq -> applyOp(op, mid + 1, max);
-				left = izq -> consultar(min, mid);
-				rigth = der -> consultar(mid + 1, max);
-
-				res = left + rigth;
-			}
-
+		if (r <= mid){
+			update(begin, mid, l, r, left, op);
+		} else
+		if (l > mid){
+			update(mid+1, end, l, r, right, op);
+		} else {
+			update(begin, mid, l, mid, left, op);
+			update(mid+1, end, mid+1, r, right, op);
 		}
 
-		return res;
+		propagate(begin, mid, left);
+		propagate(mid+1, end, right);
+		tree[i].join(tree[left], tree[right]);
 	}
+}
 
-} segmentTree;
+int main(){
 
-
-void readInputString()
-{
+	int n;
+	tree.assign(4*1024000, Node());
 	int t;
 	cin>>t;
-	pirates = "";
-	string aux;
-	while (t--)
-	{
-		int n;
-		cin>>n;
-		cin>>aux;
-		for (int i = 0; i < n; i++)
-		{
-			pirates = pirates + aux;
+	string cad;
+	while(t--){
+		cad = "";
+		int m;
+		cin>>m;
+		while (m--){
+			cin>>n>>cad;
+			while(n--){
+				a = a + cad;
+			}
+		}
+		
+		int q;
+		cin>>q;
+		int l, r;
+		char op;
+		n = a.size();
+		init(0, a.size()-1, 0);
+
+		for(int i = 0; i < q; i++){
+			cin>>op>>l>>r;
+
+			if(op == 'S'){
+			//	cout<<"executing "<<op<<endl;
+				cout<<get(0, n-1, l, r, 0).buccaneer<<endl;
+			//	cout<<"ended"<<endl;
+			} else {
+			//	cout<<"Updating... "<<endl;
+				update(0, n-1, l, r, 0, op);
+			//	cout<<"updated"<<endl;
+			}
 		}
 	}
-}
-
-void readQuerys()
-{
-	int nQuery;
-	int godQuery = 1;
-	cin>>nQuery;
-
-	char op;
-	int low, high;
-
-	for (int q = 0; q < nQuery; q++)
-	{
-		cin>>op>>low>>high;
-	//	cout<<"making nQuery"<<endl;
-		switch (op)
-		{
-			case 'F': {segmentTree.applyOp(1, low, high); break;}
-			case 'E': {segmentTree.applyOp(2, low, high); break;}
-			case 'I': {segmentTree.applyOp(3, low, high); break;}
-			case 'S': {
-				cout<<"Q"<<godQuery<<": "<<segmentTree.consultar(low, high)<<endl;
-				godQuery++;
-			} 
-
-		}
-	}
-}
-
-
-int main()
-{
-	int nTest;
-
-	cin>>nTest;
-
-	for (int test = 1; test <= nTest; test ++)
-	{	
-		cout<<"Case "<<test<<":"<<endl;
-		readInputString();
-		segmentTree = Nodo(0, pirates.size()-1);
-	//	cout<<"tree maked"<<endl;
-		readQuerys();
-	}
-
 	return 0;
 }
